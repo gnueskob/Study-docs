@@ -16,4 +16,5 @@ SHOW DATABASES;
 
 # 해당 DB에 대해서 개발자 계정에 모든 권한 부여
 GRANT ALL PRIVILEGES ON BASICTRAINING.* TO 'gnues'@'%';
+GRANT ALL PRIVILEGES ON employees.* TO 'gnues'@'%';
 FLUSH PRIVILEGES;
