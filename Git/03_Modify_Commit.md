@@ -246,5 +246,25 @@ $ git commit -m "Story 182: Fix benchmarks for speed"
 - 위 예제는 `master`브랜치에 커밋했고 체크섬은 `463dc4f`임을 알려줌
 - 또한 수정한 파일의 개수, 삭제 혹은 추가된 라인의 개수를 알려줌
 
-## 스테이질 에리어 생략
-[TODO: here https://git-scm.com/book/ko/v2/Git%EC%9D%98-%EA%B8%B0%EC%B4%88-%EC%88%98%EC%A0%95%ED%95%98%EA%B3%A0-%EC%A0%80%EC%9E%A5%EC%86%8C%EC%97%90-%EC%A0%80%EC%9E%A5%ED%95%98%EA%B8%B0]
+## 스테이징 에리어 생략
+- 커밋할 파일을 정리하는 스테이징 에리어를 스킵해서 바로 커밋시킬 수 있음
+- `git commit -a` 옵션으로 커밋하면 Tracked 상태의 파일을 자동으로 스테이징 에리어에 넣음
+```
+$ git status
+On branch master
+Your branch is up-to-date with 'origin/master'.
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git checkout -- <file>..." to discard changes in working directory)
+
+    modified:   CONTRIBUTING.md
+
+no changes added to commit (use "git add" and/or "git commit -a")
+$ git commit -a -m 'added new benchmarks'
+[master 83e38c7] added new benchmarks
+ 1 file changed, 5 insertions(+), 0 deletions(-)
+```
+- 위 예시에서는 `git add`명령으로 CONTRIBUTING.md를 추가하지 않았음에도 바로 commit됨
+- 단, `git commit -a` 옵션을 사용하면 Tracked 상태의 모든 파일을 `git add`한다고 봐야함
+- 즉, `git commit -a`는 `git add --all`, `git commit` 두 단계를 축약한 것
+
