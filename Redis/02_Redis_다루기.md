@@ -502,13 +502,13 @@ OK
   - `COUNT count` 옵션을 통해 확인하려는 `field`값의 개수를 제시할 수 있으나  
     레디스 서버에서 자체적으로 처리 시간을 고려하여 개수를 알아서 정함
 
-| 명령    | `HSCAN [key] cursor ([MATCH pattern] [COUNT count])` |
-| :---- | :------------------------------------------------------- |
-| 지원버전  | >= 2.8.0                                                 |
-| 시간복잡도 | O(1)                                                     |
-| 응답    | <멀티 벌크 응답>                                               |
-| 1) cursor | 모든 `field`를 조회하기 위해서 다음 `HSCAN`에 조회해야할 커서 위치 |
-| 2) field | 해당 `HSCAN`명령을 통해 조회가능한 `field` 들 |
+| 명령        | `HSCAN [key] cursor ([MATCH pattern] [COUNT count])` |
+| :-------- | :--------------------------------------------------- |
+| 지원버전      | >= 2.8.0                                             |
+| 시간복잡도     | O(1)                                                 |
+| 응답        | <멀티 벌크 응답>                                           |
+| 1) cursor | 모든 `field`를 조회하기 위해서 다음 `HSCAN`에 조회해야할 커서 위치         |
+| 2) field  | 해당 `HSCAN`명령을 통해 조회가능한 `field` 들                     |
 
 ```redis
 127.0.0.1:6379> hscan movie 1
@@ -536,3 +536,591 @@ OK
 - 셋은 최대 `2^32 - 1`개의 원소를 가질 수 있음
 
 ## 셋 명령
+
+- `SADD`
+  - 지정된 셋에 하나 이상의 원소들을 추가
+
+| 명령    | `SADD [key] [value1] ([value2], ...)` |
+| :---- | :------------------------------------ |
+| 지원버전  | >= 1.0.0 (여러 요소 추가 >= 2.4.0)          |
+| 시간복잡도 | O(N), N은 입력된 값의 개수                    |
+| 응답    | <숫자 응답>, 추가된 원소 개수                    |
+
+- `SMEMBERS`
+  - 지정된 셋의 원소들을 조회
+
+| 명령    | `SMEMBERS [key]`       |
+| :---- | :--------------------- |
+| 지원버전  | >= 1.0.0               |
+| 시간복잡도 | O(N), N은 입력된 값의 개수     |
+| 응답    | <멀티 벌크 응답>, 셋에 저장된 원소들 |
+
+```redis
+127.0.0.1:6379> sadd test:set my
+(integer) 1
+127.0.0.1:6379> sadd test:set name is "temp 1" "temp 2"
+(integer) 4
+127.0.0.1:6379> smembers
+1) "is"
+2) "name"
+3) "my"
+4) "temp2"
+5) "temp1"
+```
+
+- `SINTER`
+  - 여러 셋을 받아 모든 셋에 공통으로 존재하는 원소 반환
+
+| 명령    | `SINTER [key1] [key2] ([key3], ...)`         |
+| :---- | :------------------------------------------- |
+| 지원버전  | >= 1.0.0                                     |
+| 시간복잡도 | O(N*M), N : 셋 중 가장 작은 cardinality, M : 셋의 개수 |
+| 응답    | <멀티 벌크 응답>, 셋의 공통 원소들                        |
+
+```redis
+127.0.0.1:6379> sadd test:set2 name temp2
+(integer) 2
+127.0.0.1:6379> sadd test:set3 name ttttt
+(integer) 2
+127.0.0.1:6379> sinter test:set test:set2 test:set3
+1) "name"
+```
+
+- `SDIFF`
+  - 첫 번째 셋의 원소 중 뒤따르는 셋에 없는 원소들만 반환
+
+| 명령    | `SDIFF [key1] [key2] ([key3], ...)` |
+| :---- | :---------------------------------- |
+| 지원버전  | >= 1.0.0                            |
+| 시간복잡도 | O(N), N : 모든 셋들의 원소 개수              |
+| 응답    | <멀티 벌크 응답>, 조건을 만족하는 원소들            |
+
+```redis
+127.0.0.1:6379> sdiff test:set test:set2 test:set3
+1) "my"
+2) "temp1"
+3) "is"
+```
+
+- `SUNION`
+  - 하나 이상의 셋에서 모든 셋의 원소를 하나의 집합으로 모아 반환
+
+| 명령    | `SUNION [key1] [key2] ([key3], ...)` |
+| :---- | :----------------------------------- |
+| 지원버전  | >= 1.0.0                             |
+| 시간복잡도 | O(N), N : 모든 셋들의 원소 개수               |
+| 응답    | <멀티 벌크 응답>, 조건을 만족하는 원소들             |
+
+```redis
+127.0.0.1:6379> sunion test:set test:set2 test:set3
+1) "my"
+2) "temp2"
+3) "ttttt"
+4) "is"
+5) "temp1"
+6) "name"
+```
+
+- `SRANDMEMBER`
+  - 셋의 원소중 무작위로 한 개의 원소를 반환
+
+| 명령    | `SRANDMEMBER [key] ([count])` |
+| :---- | :---------------------------- |
+| 지원버전  | >= 1.0.0                      |
+| 시간복잡도 | O(N), N : 뽑을 원소 개수 (count)    |
+| 응답    | <멀티 벌크 응답>, 조건을 만족하는 원소들      |
+
+```redis
+127.0.0.1:6379> srandmember test:set 2
+1) "temp2"
+2) "name"
+```
+
+- `SISMEMBER`
+  - 셋에 원소가 존재하는지 판별
+
+| 명령    | `SISMEMBER [key] [value]`  |
+| :---- | :------------------------- |
+| 지원버전  | >= 1.0.0                   |
+| 시간복잡도 | O(1)                       |
+| 응답    | <숫자 응답>                    |
+| 0     | 셋에 원소가 없거나 key가 존재하지 않는 경우 |
+| 1     | 셋에 해당 원소가 존재하는 경우          |
+
+```redis
+127.0.0.1:6379> sismember test:set name
+(integer) 1
+127.0.0.1:6379> sismember test:not_set name
+(integer) 0
+127.0.0.1:6379> sismember test:set "non value"
+(integer) 0
+```
+
+- `SREM`
+  - 주어진 원소를 셋에서 삭제하고 셋에서 삭제된 원소의 개수를 반환
+
+| 명령    | `SREM [key] [value1] ([value2], ...)` |
+| :---- | :------------------------------------ |
+| 지원버전  | >= 1.0.0 / (멀티 요소 >= 2.4.0)           |
+| 시간복잡도 | O(N), N : 지우려는 원소 개수                  |
+| 응답    | <숫자 응답>                               |
+| 0     | 셋에 원소가 없거나 key가 존재하지 않는 경우            |
+| N     | 셋에서 삭제된 원소의 개수                        |
+
+- `SCARD`
+  - 해당 셋의 원소 개수를 반환 (Cardinality)
+
+| 명령    | `SCARD [key]`              |
+| :---- | :------------------------- |
+| 지원버전  | >= 1.0.0                   |
+| 시간복잡도 | O(1)                       |
+| 응답    | <숫자 응답>                    |
+| 0     | 셋에 원소가 없거나 key가 존재하지 않는 경우 |
+| N     | 셋에 N개의 원소가 존재하는 경우         |
+
+```redis
+127.0.0.1:6379> scard test:set
+(integer) 5
+127.0.0.1:6379> srem test:set name
+(integer) 1
+127.0.0.1:6379> scard test:set
+(integer) 4
+127.0.0.1:6379> srem test:set "non value"
+(integer) 0
+
+127.0.0.1:6379> srem test:not_set "non value"
+(integer) 0
+
+127.0.0.1:6379> scard no_key
+(integer) 0
+127.0.0.1:6379> scard no_key temp
+(integer) 0
+```
+
+***
+
+## 정렬된 셋 (Sorted-Set)
+
+- 셋과 비슷하지만 저장된 원소에 가중치를 부여하여 정렬된(오름차순) 상태로 저장하는 집합
+- 동일한 가중치를 가진 원소를 가질 수 있음 (사전 순서로 정렬가능)
+- 가중치로 원소를 비교하므로 셋 커맨드보다는 빠르지 않음
+- 64비트 double floating point를 사용함
+  - `-2^53 ~ 2^53` 범위까지 커버 가능
+- 정렬된 셋은 2개의 분리된 데이터 구조로 구현됨
+- `skiplist` with `hashtable`
+- `ziplist`
+
+## 정렬된 셋 명령
+
+- `ZADD`
+  - 정렬된 셋에 하나 이상의 원소를 추가
+  - `NX` : 이미 존재하는 원소는 수정하지 않고 새로운 원소만 추가
+  - `XX` : 이미 존재하는 원소만 수정, 새로운 원소는 추가하지 않음
+  - `CH` : 반환 값을 추가된 원소의 개수가 아닌, 정렬된 셋의 수정된 원소의 개수로 바꿈
+  - `INCR` : `ZADD`를 `ZINCRBY`처럼 동작하게 함, 오직 하나의 `weight`, `value` pair만 받을 수 있음
+
+
+| 명령    | `ZADD [key] ([NX|XX] [CH] [INCR]) [weight1] [value1] ([weight2] [value2], ...)` |
+| :---- | :------------------------------------------------------------------------------ |
+| 지원버전  | >= 1.2.0 / (멀티 요소 >= 2.4.0) / (`[NX|XX] [CH] [INCR]` >= 3.0.2)                  |
+| 시간복잡도 | O(log(N)), N : sorted-set 의 원소 개수                                               |
+| 응답    | <숫자 응답>                                                                         |
+| 0     | 셋에 원소가 없거나 key가 존재하지 않는 경우                                                      |
+| N     | 셋에 N개의 원소가 존재하는 경우                                                              |
+
+- `ZRANGE / ZREVRANGE`
+  - sorted-set의 값을 특정 범위만큼 조회
+  - 조회하는 index가 음수일 경우 뒤에서 부터의 index를 의미
+    - ex) `-2 ~ -1` : 뒤에서 2번째 원소부터 뒤에서 1번째 원소까지
+  - `WITHSCORES` : 해당 원소의 가중치도 다음 행에 함께 표시
+  - `ZREVRANGE` : 인덱스를 내림차순으로 조회
+
+| 명령    | `ZRANGE / ZREVRANGE [key] [start_index] [end_index] ([WITHSCORES])` |
+| :---- | :------------------------------------------------------------------ |
+| 지원버전  | >= 1.2.0                                                            |
+| 시간복잡도 | O(log(N) + M), N : sorted-set 의 원소 개수, M : 조회된 값의 개수                |
+| 응답    | <멀티 벌크 응답>, 조회된 원소들                                                 |
+
+```redis
+127.0.0.1:6379> zadd zset:test 1 v1 2 v2 3 v3
+(integer) 3
+127.0.0.1:6379> zadd zset:test 4 v4
+(integer) 1
+
+127.0.0.1:6379> zrange zset:test 0 -1 WITHSCORES
+1) "v1"
+2) "1"
+3) "v2"
+4) "2"
+5) "v3"
+6) "3"
+7) "v4"
+8) "4"
+
+# 기존 값의 가중치를 수정
+127.0.0.1:6379> zadd zset:test 10 v1
+(integer) 0
+127.0.0.1:6379> zrange zset:test 0 -1 WITHSCORES
+1) "v2"
+2) "2"
+3) "v3"
+4) "3"
+5) "v4"
+6) "4"
+7) "v1"
+8) "1"
+
+# XX Flag - 기존 원소 수정만 가능
+127.0.0.1:6379> zadd zset:test XX 1 v1 5 v5
+(integer) 0
+127.0.0.1:6379> zrange zset:test 0 -1 WITHSCORES
+1) "v1"
+2) "1"
+3) "v2"
+4) "2"
+5) "v3"
+6) "3"
+7) "v4"
+8) "4"
+
+# NX Flag - 새로운 원소 추가만 가능
+127.0.0.1:6379> zadd zset:test NX 100 v1 5 v5
+(integer) 1
+127.0.0.1:6379> zrange zset:test 0 -1 WITHSCORES
+ 1) "v1"
+ 2) "1"
+ 3) "v2"
+ 4) "2"
+ 5) "v3"
+ 6) "3"
+ 7) "v4"
+ 8) "4"
+ 9) "v5"
+10) "5"
+
+# CH Flag - 추가된 원소 + 수정된 원소의 개수 반환
+127.0.0.1:6379> zadd zset:test CH 1 v1 10 v10
+(integer) 1
+127.0.0.1:6379> zrange zset:test 0 -1 WITHSCORES
+ 1) "v2"
+ 2) "2"
+ 3) "v3"
+ 4) "3"
+ 5) "v4"
+ 6) "4"
+ 7) "v5"
+ 8) "5"
+ 9) "v1"
+10) "10"
+11) "v10"
+12) "10"
+
+# XX Flag로 인해 (100, t1), (100, t2)는 무시됨
+# 수정된 원소가 2개 이므로 '2' 반환
+127.0.0.1:6379> zadd zset:test XX CH 1 v1 3 v3 100 t1 100 t2
+(integer) 2
+
+# NX Flag로 인해 v1, v3 수정은 무시됨
+# 새로 추가된 원소가 3개 이므로 '3' 반환
+127.0.0.1:6379> zadd zset:test NX CH 10 v1 10 v3 100 t1 100 t2 100 t3
+(integer) 3
+
+# 같은 가중치 값일 시 사전 순으로 정렬됨
+127.0.0.1:6379> zadd zset:dup_test 1 v10 1 v4 1 v2 1 v3
+(integer) 4
+127.0.0.1:6379> zrange zset:dup_test 0 -1 WITHSCORES
+1) "v10"
+2) "1"
+3) "v2"
+4) "1"
+5) "v3"
+6) "1"
+7) "v4"
+8) "1"
+
+# 값 쌍이 동일한 원소를 추가할 경우 무시됨
+127.0.0.1:6379> zadd zset:dup_test 1 v10 1 v4
+(integer) 0
+127.0.0.1:6379> zcard zset:dup_test
+(integer) 4
+
+# 한 값에 대해 하나의 가중치만 부여할 수있음
+# 즉, 중복된 값을 허용하지 않음 (집합)
+127.0.0.1:6379> zadd zset:dup_test 100 v10 100 v4
+(integer) 0
+127.0.0.1:6379> zcard zset:dup_test
+(integer) 4
+
+```
+
+- `ZRANGEBYLEX / ZREVRANGEBYLEX`
+  - lexicographical 순서를 기준으로 sorted-set의 특정 범위를 조회할 때
+  - `min`, `max`를 `- ~ +`로 할 경우 모든 원소 반환
+
+| 명령    | `ZRANGEBYLEX / ZREVRANGEBYLEX [key] [min] [max] ([LIMIT offset count])` |
+| :---- | :---------------------------------------------------------------------- |
+| 지원버전  | >= 2.8.9                                                                |
+| 시간복잡도 | O(log(N) + M), N : sorted-set 의 원소 개수, M : 조회된 값의 개수                    |
+| 응답    | <멀티 벌크 응답>, 조회된 원소들                                                     |
+
+```redis
+127.0.0.1:6379> ZADD myzset 0 a 0 b 0 c 0 d 0 e 0 f 0 g
+(integer) 7
+127.0.0.1:6379> ZRANGEBYLEX myzset - [c
+1) "a"
+2) "b"
+3) "c"
+127.0.0.1:6379> ZRANGEBYLEX myzset - (c
+1) "a"
+2) "b"
+127.0.0.1:6379> ZRANGEBYLEX myzset [aaa (g
+1) "b"
+2) "c"
+3) "d"
+4) "e"
+5) "f"
+```
+
+- `ZRANGEBYSCORE / ZREVRANGEBYSCORE`
+  - 가중치 기준으로 sorted-set의 특정 범위를 조회할 때
+  - `min`, `max`를 `-inf ~ +inf`로 할 경우 모든 원소 반환
+
+| 명령    | `ZRANGEBYLEX / ZREVRANGEBYLEX [key] [min] [max] ([LIMIT offset count])` |
+| :---- | :---------------------------------------------------------------------- |
+| 지원버전  | >= 1.0.5                                                                |
+| 시간복잡도 | O(log(N) + M), N : sorted-set 의 원소 개수, M : 조회된 값의 개수                    |
+| 응답    | <멀티 벌크 응답>, 조회된 원소들                                                     |
+
+```redis
+127.0.0.1:6379> ZADD myzset 1 "one"
+(integer) 1
+127.0.0.1:6379> ZADD myzset 2 "two"
+(integer) 1
+127.0.0.1:6379> ZADD myzset 3 "three"
+(integer) 1
+127.0.0.1:6379> ZRANGEBYSCORE myzset -inf +inf
+1) "one"
+2) "two"
+3) "three"
+127.0.0.1:6379> ZRANGEBYSCORE myzset 1 2
+1) "one"
+2) "two"
+127.0.0.1:6379> ZRANGEBYSCORE myzset (1 2
+1) "two"
+127.0.0.1:6379> ZRANGEBYSCORE myzset (1 (2
+(empty list or set)
+```
+
+- `ZSCORE`
+  - 해당 값의 가중치를 반환
+
+| 명령    | `ZSCORE [key] [value]` |
+| :---- | :--------------------- |
+| 지원버전  | >= 1.2.0               |
+| 시간복잡도 | O(1)                   |
+| 응답    | <숫자 응답>, 가중치 값         |
+
+```redis
+127.0.0.1:6379> ZADD myzset 1 "one"
+(integer) 1
+127.0.0.1:6379> ZSCORE myzset "one"
+"1"
+```
+
+- `ZRANK / ZREVRANK`
+  - sorted-set에서 특정 원소의 등수를 확인
+  - 가장 높은 등수는 0순위가 기준
+
+| 명령                | `ZRANK / ZREVRANK [key] [value]` |
+| :---------------- | :------------------------------- |
+| 지원버전              | >= 2.0.0                         |
+| 시간복잡도             | O(lon(N)) , N : 정렬된 셋의 원소 개수     |
+| 응답                | <숫자 응답>, <문자열 벌크 응답>             |
+| <숫자 응답>           | 원소가 정렬된 셋에 존재할 경우 해당 원소의 등수      |
+| <문자열 벌크 응답> (nil) | 없는 키 값이거나 원소가 존재하지 않는 경우         |
+
+```redis
+127.0.0.1:6379> ZADD myzset 1 "one" 2 "two" 3 "three"
+(integer) 3
+127.0.0.1:6379> ZRANK myzset "three"
+(integer) 2
+127.0.0.1:6379> ZRANK myzset "four"
+(nil)
+127.0.0.1:6379> ZREVRANK myzset "three"
+(integer) 0
+```
+
+- `ZREM`
+  - sorted-set에서 특정 원소 삭제
+
+| 명령    | `ZREM [key] [value1] ([value2], ...)`           |
+| :---- | :---------------------------------------------- |
+| 지원버전  | >= 1.2.0                                        |
+| 시간복잡도 | O(lon(N)*M) , N : 정렬된 셋의 원소 개수, M : 지우려는 원소의 개수 |
+| 응답    | <숫자 응답>, 지워진 원소의 개수                             |
+
+```redis
+127.0.0.1:6379> ZADD myzset 1 "one"
+(integer) 1
+127.0.0.1:6379> ZADD myzset 2 "two"
+(integer) 1
+127.0.0.1:6379> ZADD myzset 3 "three"
+(integer) 1
+127.0.0.1:6379> ZREM myzset "two"
+(integer) 1
+127.0.0.1:6379> ZRANGE myzset 0 -1 WITHSCORES
+1) "one"
+2) "1"
+3) "three"
+4) "3"
+```
+
+***
+
+## 비트맵
+
+- 레디스의 실제 타입이 아니며 내부적으로 문자열로 취급됨
+- 문자열의 비트 연산자 집합
+- 레디스는 문자열을 비트맵으로 제어할 수 있는 커맨드 제공하
+- 개별 비트를 0 or 1로 저장할 수 있는 비트 배열이며 레디스는 비트맵 인덱스를 오프셋(offset)으로 나타냄
+- 비트맵은 메모리 효율이 좋고 빠른 데이터 검색을 지원하며 `2^32`비트 까지 저장할 수 있음
+- 비트맵은 사용자가 어떤 액션을 실행했는지 / 얼마나 많은 이벤트가 발생했는지 등 실시간 분석을 포함하는 곳에 매우 적함
+
+## 비트맵 명령
+
+- `SETBIT`
+  - 비트맵 오프셋에 값을 저장
+  - last possible bit (ex., offset equal to `2^32 - 1`)을 set하는 경우
+    - key에 저장된 string이 아직 value를 hold하고 있지 않거나 작은 길이의 value를 갖고 있는 경우 시간이 오래 걸릴 수 있음
+    - 레디스는 메모리 allocation을 위해 서버를 block하는 작업을 수행하게 되기 때문
+  - set할 때의 offset은 `0`이 MSB(Most significant bit)으로 처리됨
+
+| 명령    | `SETBIT [key] [offset] [value]`      |
+| :---- | :----------------------------------- |
+| 지원버전  | >= 2.2.0                             |
+| 시간복잡도 | O(1)                                 |
+| 응답    | <숫자 응답>, 해당 offset에 저장되어있던 기존의 bit 값 |
+
+```redis
+127.0.0.1:6379> setbit mybit 7 1
+(integer) 0
+127.0.0.1:6379> setbit mybit 3 1
+(integer) 0
+127.0.0.1:6379> setbit mybit 0 1
+(integer) 0
+# (bin) 1001'0001
+127.0.0.1:6379> get mybit
+"\x91"
+127.0.0.1:6379> setbit mybit 15 1
+(integer) 0
+127.0.0.1:6379> setbit mybit 9 1
+(integer) 0
+# (bin) 1001'0001 0001'0001
+127.0.0.1:6379> get mybit
+"\x91\x01"
+```
+
+- `BITCOUNT`
+  - 해당 비트맵에서 set된 비트의 개수
+  - `start_index ~ end_index` : byte단위로 범위 지정
+
+| 명령    | `BITCOUNT [key] ([start_index end_index])` |
+| :---- | :----------------------------------------- |
+| 지원버전  | >= 2.6.0                                   |
+| 시간복잡도 | O(N)                                       |
+| 응답    | <숫자 응답>, 해당 범위에 set된 bit의 개수               |
+
+```redis
+127.0.0.1:6379> get mybit
+"\x91\x11"
+127.0.0.1:6379> bitcount mybit
+(integer) 5
+127.0.0.1:6379> bitcount mybit 0 0
+(integer) 3
+127.0.0.1:6379> bitcount mybit 0 1
+(integer) 5
+127.0.0.1:6379> bitcount mybit 1 1
+(integer) 2
+```
+
+- `BITOP`
+  - 비트맵끼리 비트맵 연산을 하고 결과를 저장
+  - `OR`, `AND`, `XOR`, `NOT` 연산 가능
+
+| 명령    | `BITOP [operation] [dest_key] [key1] ([key2], ...)`       |
+| :---- | :-------------------------------------------------------- |
+| 지원버전  | >= 2.6.0                                                  |
+| 시간복잡도 | O(N)                                                      |
+| 응답    | <숫자 응답>, 결과로 저장된 string의 크기 (input string 중 가장 긴 문자열의 크기) |
+
+```redis
+127.0.0.1:6379> set s1 foobar
+OK
+127.0.0.1:6379> set s2 abcdef
+OK
+127.0.0.1:6379> bitop and res s1 s2
+(integer) 6
+127.0.0.1:6379> get res
+"`bc`ab"
+```
+
+***
+
+## 하이퍼로그로그
+
+- 레디스의 실제 데이터 타입이 아닌 개념적 알고리즘
+- 셋에 존재하는 고유 원소의 개수를 매우 훌륭한 근사치로 제공 (확률적)
+- 하나의 키당 매우 작은 메모리만을 필요로 함 (최대 12KB)
+- 항상 O(1) 시간복잡도를 가짐
+
+## 하이퍼로그로그 명령어
+
+- `PFADD`
+  - 하이퍼로그로그에 문자열을 추가
+
+| 명령    | `PFADD [key] [value1] ([value2], ...)`                |
+| :---- | :---------------------------------------------------- |
+| 지원버전  | >= 2.8.9                                              |
+| 시간복잡도 | O(1)                                                  |
+| 응답    | <숫자 응답>, 0 : cardinality 변화 없음, 1 : cardinality 변화 있음 |
+
+- `PFMERGE`
+  - 대상 키와 하나 이상의 하이퍼로그로그 키를 매개변수로 받아 병합하고 대상 키에 저장
+
+| 명령    | `PFMERGE [dest_key] [key1] ([key2], ...)`                |
+| :---- | :---------------------------------------------------- |
+| 지원버전  | >= 2.8.9                                              |
+| 시간복잡도 | O(N), N : 하이퍼로그로그 키 개수 (높은 상수 시간으로 봐도 무방)         |
+| 응답    | <상태 응답>, OK |
+
+- `PFCOUNT`
+  - 해당 하이퍼로그로그 키의 cardinality 반환
+
+| 명령    | `PFCOUNT [key1] ([key2], ...)`                |
+| :---- | :---------------------------------------------------- |
+| 지원버전  | >= 2.8.9                                              |
+| 시간복잡도 | O(1) - key 1개 / O(N), N : 하이퍼로그로그 키의 개수 N |
+| 응답    | <숫자 응답>, cardinality |
+
+```redis
+127.0.0.1:6379> pfadd pftest foo bar zap
+(integer) 1
+127.0.0.1:6379> pfadd pftest foo bar
+(integer) 0
+127.0.0.1:6379> pfadd pftest2 foo bar test
+(integer) 1
+
+127.0.0.1:6379> pfmerge pfmerge pftest pftest2
+OK
+
+127.0.0.1:6379> pfcount pftest
+(integer) 3
+127.0.0.1:6379> pfcount pftest2
+(integer) 3
+127.0.0.1:6379> pfcount pfmerge
+(integer) 4
+127.0.0.1:6379> pfcount pftest pftest2
+(integer) 4
+127.0.0.1:6379> pfcount pfmerge pftest pftest2
+(integer) 4
+```
