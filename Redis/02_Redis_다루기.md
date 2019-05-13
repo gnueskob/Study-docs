@@ -21,6 +21,9 @@
 
 ## 기본 명령어
 
+- `flushdb`
+  - 이전에 수행된 데이터 삭제
+
 - `SET [key] [value]`, `GET [key]`
   - SET 명령으로 key 값에 value를 저장할 수 있음
   - GET 명령으로 레디스 서버에 저장된 value를 key값으로 가져올 수 있음
