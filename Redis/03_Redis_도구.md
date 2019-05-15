@@ -4,7 +4,7 @@
 
 - 레디스는 성능 측정을 위한 `redis-benchmark` 도구 제공
 
-```
+```redis
 redis-benchmark
 ====== PING_INLINE ======
   100000 requests completed in 0.84 seconds
