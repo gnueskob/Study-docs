@@ -152,3 +152,110 @@ Client
 │                                            │
 └────────────────────────────────────────────┘
 ```
+
+***
+
+## PUB/SUB
+
+- `Pub/Sub`은 메세지를 특정 수신자에게 직접 발송하지 못하는 곳에서 쓰이는 패턴
+- Publish-Subscribe의 약자
+- 발송자, 구독자가 특정 채널을 리스닝
+- 발소자는 채널에 메시지를 보내고 구독자는 발송자의 메시지를 받음
+- `PUBLISH` 커맨드
+  - 메시지를 레디스 채널에 보내고 메시지를 받은 클라이언트 개수를 리턴
+  - 메시지가 채널로 들어올 때 채널을 구독하는 클라이언트가 없다면 메시지는 소실됨
+
+```js
+// publisher.js
+var redis = require("redis");
+var clinet = redis.createClient();
+
+var channel = process.argv[2]; // 커맨드 라인의 3번째 변수 할당
+var command = process.argv[3];
+
+client.publish(channel, command);
+client.quit();
+```
+
+- `SUBSCRIBE` 커맨드
+  - 클라이언트가 하나 이상의 채널을 구독
+
+- `UNSUBSCRIBE` 커맨드
+  - 하나 이상의 채널에서 클라이언트 구독 해지
+
+- `PSUBSCRIBE`, `PUNSUBSCRIBE` 커맨드
+  - 기존 P가 없는 명령어와 역할이 동일하나 channel 이름을 `glob`형태로 받음
+
+- 레디스 클라이언트가 `(P)SUBSCRIBE` 명령을 실행하면 구독모드로 진입
+  - `SUBSCRIBE`, `PSUBSCRIBE`, `UNSUBSCRIBE`, `PUNSUBSCRIBE` 명령만 받음
+
+```js
+// subscriber.js
+var os = require("os");
+var redis = require("redis");
+var client = redis.createClient();
+
+var COMMANDS = {};
+
+COMMANDS.DATE = function () {
+  var now = new DATE();
+  console.log("DATE " + now.toISOString());
+}
+
+COMMANDS.PING = function () {
+  console.log("PONG");
+}
+
+COMMANDS.HOSTNAME = function () {
+  console.log("HOSTNAME " + os.hostname());
+}
+
+// 채널 함수 리스너
+client.on("message", function (channel, commandName) {
+  if (COMMANS.hasOwnProperty(commandName)) {
+    var commandFunction = COMMANDS[commandName];
+    commandFunction();
+  } else {
+    console.log("Unknown command: " + commandName);
+  }
+});
+
+// 실제 채널이름을 받아 구독이 시작되는 부분
+client.subscribe("global", process.argv[2]);
+```
+
+- subscriber를 실행하고 publisher에서 메시지를 보냄
+- subscriber에서는 메시지를 받고 해당하는 함수를 호출하여 메시지 출력
+
+```bash
+# publisher
+$ node publisher.js global PING
+$ node publisher.js channel-1 DATE
+$ node publisher.js channel-2 HOST
+...
+```
+
+```bash
+# subscriber 1
+$ node subscriber.js channel-1
+PONG
+DATE 2019-05-16T23:13.075Z
+```
+
+```bash
+# subscriber 2
+$ node subscriber.js channel-2
+PONG
+HOSTNAME gnues.home
+```
+
+- `PUBSUB` 커맨드
+  - 레디스의 `Pub/Sub`상태를 조사
+  - `PUBSUB CHANNELS [pattern]`
+    - 동작중인 모든 채널 반환
+    - `pattern` : `glob` 형식을 가진 패턴을 명시하면 패턴에 맞는 채널이름만 반환
+  - `PUBSUB NUMSUB [channel-1 ... channel-n]`
+    - `SUBSCRIBE` 커맨드를 통해 채널에 접속한 클라이언트 개수 반환
+    - 채널 이름을 변수로 받음
+  - `PUBSUB NUMPAT`
+    - `PSUBSCRIBE` 커맨드를 통해 채널에 접속한 클라이언트 개수 반환
