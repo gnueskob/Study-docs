@@ -39,8 +39,8 @@
 
 ```test
 # renamed-redis.conf
-rename-command FLUSHDB e0912asad9asd83asfaskld90
-rename-command FLUSHALL a82asdj9m90vkoqw9812dasod
+rename-command FLUSHDB 08cbbb4c05ec977af9c4925834a71971bbea3477
+rename-command FLUSHALL b5354de29d7ec02e64580658d3f59422cfeda916
 rename-command CONFIG ""
 rename-command KETS ""
 rename-command DEBUG ""
@@ -61,7 +61,7 @@ include .../path/renamed-redis.conf
 (error) ERR unknown command 'SAVE'
 127.0.0.1:6379> FLUSHDB
 (error) ERR unknown command 'FLUSHDB'
-127.0.0.1:6379> e0912asad9asd83asfaskld90
+127.0.0.1:6379> 08cbbb4c05ec977af9c4925834a71971bbea3477
 OK
 ```
 
